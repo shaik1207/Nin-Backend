@@ -2,143 +2,191 @@ const { User } = require('../../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_key';
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  'your_super_secret_key';
 
-// Manual User Registration
+const generateToken = (user) => {
+  return jwt.sign(
+    {
+      id: user.id,
+      role: user.role,
+    },
+    JWT_SECRET,
+    {
+      expiresIn: '7d',
+    }
+  );
+};
+
+// =========================
+// USER REGISTER
+// =========================
 exports.registerUser = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ success: false, message: "Email and password are required." });
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required.',
+      });
     }
 
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: "User with this email already exists." });
-    }
-
-    // Explicitly hash password to ensure consistency
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const newUser = await User.create({
-      name: name || email.split('@')[0],
-      email,
-      password: hashedPassword,
-      role: role || 'customer',
-      isActive: true
+    const existingUser = await User.findOne({
+      where: { email },
     });
 
-    const token = jwt.sign({ id: newUser.id, role: newUser.role }, JWT_SECRET, { expiresIn: '7d' });
-    const userResponse = newUser.toJSON();
-    delete userResponse.password;
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists.',
+      });
+    }
+
+    const user = await User.create({
+      name: name || email.split('@')[0],
+      email,
+      password,
+      role: role || 'customer',
+      isActive: true,
+    });
+
+    const userData = user.toJSON();
+
+    delete userData.password;
 
     return res.status(201).json({
       success: true,
-      message: "Registration successful.",
-      token,
-      user: userResponse,
-      data: userResponse,
-      ...userResponse
+      message: 'Registration successful.',
+      token: generateToken(user),
+      user: userData,
     });
   } catch (error) {
-    console.error("❌ Registration Error:", error.message);
-    return res.status(500).json({ success: false, message: `Server Error: ${error.message}` });
+    console.error('❌ Register Error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-// Manual User Login
+// =========================
+// USER LOGIN
+// =========================
 exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ success: false, message: "Email and password are required." });
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required.',
+      });
     }
 
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({
+      where: { email },
+    });
+
     if (!user) {
-      return res.status(401).json({ success: false, message: "Invalid email or password." });
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password.',
+      });
     }
 
-    if (user.isActive === false) {
-      return res.status(403).json({ success: false, message: "Account disabled by Administrator." });
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account disabled.',
+      });
     }
 
-    // Verify password securely
-    let isMatch = false;
-    if (user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$'))) {
-      isMatch = await bcrypt.compare(password, user.password);
-    } else {
-      isMatch = (user.password === password);
-    }
+    const isMatch = await user.matchPassword(password);
 
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: "Invalid email or password." });
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password.',
+      });
     }
 
-    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    const userResponse = user.toJSON();
-    delete userResponse.password;
+    const userData = user.toJSON();
+
+    delete userData.password;
 
     return res.status(200).json({
       success: true,
-      message: "Login successful.",
-      token,
-      user: userResponse,     // Supports res.data.user or res.user
-      data: userResponse,     // Supports res.data
-      ...userResponse         // Supports direct property access like res.name
+      message: 'Login successful.',
+      token: generateToken(user),
+      user: userData,
     });
   } catch (error) {
-    console.error("❌ Login Error:", error.message);
-    return res.status(500).json({ success: false, message: `Server Error: ${error.message}` });
+    console.error('❌ Login Error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
-// Google Authentication
+// =========================
+// GOOGLE AUTH
+// =========================
 exports.googleAuth = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { email, name } = req.body;
 
     if (!email) {
-      return res.status(400).json({ success: false, message: "Email is required for Google authentication." });
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required.',
+      });
     }
 
-    let user = await User.findOne({ where: { email } });
+    let user = await User.findOne({
+      where: { email },
+    });
 
     if (!user) {
-      const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(randomPassword, salt);
+      const randomPassword =
+        Math.random().toString(36).slice(-8);
 
       user = await User.create({
         name: name || email.split('@')[0],
         email,
-        password: hashedPassword,
+        password: randomPassword,
         role: 'customer',
-        isActive: true
+        isActive: true,
       });
     }
 
-    if (user.isActive === false) {
-      return res.status(403).json({ success: false, message: "Account disabled by Administrator." });
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account disabled.',
+      });
     }
 
-    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    const userResponse = user.toJSON();
-    delete userResponse.password;
+    const userData = user.toJSON();
+
+    delete userData.password;
 
     return res.status(200).json({
       success: true,
-      message: "Google Authentication successful.",
-      token,
-      user: userResponse,
-      data: userResponse,
-      ...userResponse
+      message: 'Google login successful.',
+      token: generateToken(user),
+      user: userData,
     });
   } catch (error) {
-    console.error("❌ Google Auth Error:", error.message);
-    return res.status(500).json({ success: false, message: `Server Error: ${error.message}` });
+    console.error('❌ Google Auth Error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
