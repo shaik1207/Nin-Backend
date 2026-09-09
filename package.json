@@ -8,9 +8,18 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "nodejs",
+    "express",
+    "mysql",
+    "sequelize",
+    "canteen"
+  ],
+  "author": "Shaik Sameer",
   "license": "ISC",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
