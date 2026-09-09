@@ -9,12 +9,16 @@ const authRoutes = require('./user/authRoutes');
 const adminRoutes = require('./admin');
 const counterRoutes = require('./counter');
 
-console.log('✅ Auth Routes Loaded');
+router.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Backend Running'
+  });
+});
 
 router.use('/orders', orderRoutes);
 router.use('/menu', publicMenuRoutes);
 router.use('/auth', authRoutes);
-
 router.use('/admin', adminRoutes);
 
 if (counterRoutes) {
