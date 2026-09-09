@@ -18,7 +18,8 @@ app.use(cors({
     'http://localhost:5175', 
     'http://localhost:3000',
     'http://localhost:3001', 
-    'http://localhost:3002'
+    'http://localhost:3002',
+    'https://nin-canteen-nu.vercel.app'
   ],
   credentials: true
 }));
