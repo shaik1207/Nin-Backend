@@ -15,9 +15,11 @@ router.get('/test', (req, res) => {
   });
 });
 
-// Auth Routes
+// User Auth Routes
 router.post('/user/register', registerUser);
 router.post('/user/login', loginUser);
-router.post('/google', googleAuth);
+
+// ✅ FIXED: Changed from '/google' to '/user/google' to match frontend requests exactly
+router.post('/user/google', googleAuth); 
 
 module.exports = router;
