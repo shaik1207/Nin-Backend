@@ -9,21 +9,20 @@ const { errorHandler } = require("./middlewares/errorMiddleware");
 const app = express();
 
 // ==========================================
-// 1. GLOBAL CORS CONFIGURATION
-// This automatically handles all OPTIONS preflight requests
+// 1. CORS MUST BE FIRST
 // ==========================================
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:3000',
   'https://icmr-canteen.vercel.app',
-  'https://nin-canteen-nu.vercel.app',
-  'https://nin-canteen-git-main-shaik-sameers-projects-488de3c3.vercel.app'
+  'https://nin-canteen-nu.vercel.app'
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Allow requests with no origin (like server-to-server) or matched origins
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -32,18 +31,29 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
   })
 );
 
+// ✅ BULLETPROOF PREFLIGHT HANDLER
+// Intercepts all OPTIONS requests instantly and returns 200 OK
+// This completely bypasses the Express v5 path-to-regexp crashes
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // ==========================================
-// 2. HELMET SECURITY
-// Fixes Google Auth popups and external image loading
+// 2. HELMET (Relaxed for Google Auth)
 // ==========================================
 app.use(
   helmet({
-    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
-    crossOriginResourcePolicy: { policy: "cross-origin" },
+    // Completely disables the blockers killing the Google popup
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: false,
+    crossOriginEmbedderPolicy: false
   })
 );
 
