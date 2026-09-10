@@ -1,57 +1,45 @@
 const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
 const path = require("path");
 
 const apiRoutes = require("./routes");
 const { errorHandler } = require("./middlewares/errorMiddleware");
 
 const app = express();
+app.set("trust proxy", 1);
 
-// 1. Trust Railway's reverse proxy 
-app.set("trust proxy", true);
-
-// 2. Dynamic CORS Configuration (Must be the very first app.use)
-app.use(
-  cors({
-    origin: true, // Dynamically reflects the exact frontend origin requested
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"]
-  })
-);
-
-// 3. Relaxed Helmet Security (Prevents backend from blocking popups)
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginOpenerPolicy: false,
-    crossOriginResourcePolicy: false,
-    crossOriginEmbedderPolicy: false,
-  })
-);
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-
-// 4. Routes
-app.get("/api/health", (req, res) => {
-  res.status(200).json({ success: true, message: "Server is healthy." });
+// ==========================================
+// 1. ABSOLUTE BRUTE-FORCE CORS
+// No packages. Hardcoded headers. Must be at the very top.
+// ==========================================
+app.use((req, res, next) => {
+  // Hardcode your production Vercel URL here
+  res.header("Access-Control-Allow-Origin", "https://icmr-canteen.vercel.app");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  
+  // Instantly return 200 OK for Preflight OPTIONS requests
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  next();
 });
 
-app.get("/", (req, res) => {
-  res.status(200).json({ success: true, message: "API Root is running." });
+// ==========================================
+// 2. PARSERS & ROUTES
+// ==========================================
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ success: true, message: "Server healthy." });
 });
 
 app.use("/api", apiRoutes);
 
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `API Route Not Found: ${req.originalUrl}`,
-  });
+  res.status(404).json({ success: false, message: `Route Not Found: ${req.originalUrl}` });
 });
 
 app.use(errorHandler);
