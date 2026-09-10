@@ -22,15 +22,15 @@ app.use(
       'http://localhost:5174',
       'http://localhost:5175',
       'http://localhost:3000',
-      'https://nin-canteen-nu.vercel.app'
+      'https://icmr-canteen.vercel.app',
+      'https://nin-canteen-nu.vercel.app',
+      'https://nin-canteen-git-main-shaik-sameers-projects-488de3c3.vercel.app'
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-app.options("*", cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -39,6 +39,15 @@ app.use(
   "/uploads",
   express.static(path.join(__dirname, "../uploads"))
 );
+
+// Railway Health Check Routes (Fixes 404 Log Spam)
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ success: true, message: "Server is healthy and running." });
+});
+
+app.get("/", (req, res) => {
+  res.status(200).json({ success: true, message: "API Root is running." });
+});
 
 app.use("/api", apiRoutes);
 
