@@ -7,24 +7,18 @@ const { errorHandler } = require("./middlewares/errorMiddleware");
 
 const app = express();
 
-// ==========================================
-// 1. RAW, BULLETPROOF CORS MIDDLEWARE
-// ==========================================
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:3000',
-  'https://icmr-canteen.vercel.app',
-  'https://nin-canteen-nu.vercel.app'
-];
+// ✅ CRITICAL FOR RAILWAY: Forces Express to read headers through the proxy
+app.set('trust proxy', 1);
 
+// ==========================================
+// 1. AGGRESSIVE, BULLETPROOF CORS MIDDLEWARE
+// ==========================================
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
+  // Always reflect the exact origin that made the request. 
+  // If undefined by the proxy, fallback to your live frontend to guarantee a match.
+  const origin = req.headers.origin || 'https://icmr-canteen.vercel.app';
   
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  
+  res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
