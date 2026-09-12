@@ -1,4 +1,5 @@
 const express = require("express");
+const helmet = require("helmet");
 const path = require("path");
 
 const apiRoutes = require("./routes");
@@ -8,25 +9,51 @@ const app = express();
 app.set("trust proxy", 1);
 
 // ==========================================
-// 1. ABSOLUTE BRUTE-FORCE CORS
-// No packages. Hardcoded headers. Must be at the very top.
+// 1. ABSOLUTE TOP: RAW CORS & PREFLIGHT
+// Must execute before any parsers or routes
 // ==========================================
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "https://icmr-canteen.vercel.app"
+];
+
 app.use((req, res, next) => {
-  // Hardcode your production Vercel URL here
-  res.header("Access-Control-Allow-Origin", "https://icmr-canteen.vercel.app");
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  const origin = req.headers.origin;
   
-  // Instantly return 200 OK for Preflight OPTIONS requests
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "https://icmr-canteen.vercel.app");
+  }
+  
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+  // Instantly return 200 OK for preflight requests
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
+  
   next();
 });
 
 // ==========================================
-// 2. PARSERS & ROUTES
+// 2. SECURITY MIDDLEWARE
+// ==========================================
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
+// ==========================================
+// 3. PARSERS & ROUTES
 // ==========================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

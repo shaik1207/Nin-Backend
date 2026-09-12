@@ -26,7 +26,7 @@ if (counterRoutes) {
 }
 
 router.use((req, res) => {
-  console.error(`❌ 404: Client requested [${req.method}] ${req.originalUrl}`);
+  console.error(`404: Client requested [${req.method}] ${req.originalUrl}`);
   res.status(404).json({
     success: false,
     message: `API Route Not Found: ${req.originalUrl}`
