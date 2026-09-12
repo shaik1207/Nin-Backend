@@ -27,6 +27,12 @@ async function startServer() {
       );
     });
 
+    // ✅ CRITICAL RAILWAY PROXY FIX: 
+    // Prevents connection drops by keeping the Node.js connection open 
+    // slightly longer than the Railway proxy's idle timeout.
+    server.keepAliveTimeout = 120000; 
+    server.headersTimeout = 120000; 
+
     process.on('SIGTERM', async () => {
       console.log('🛑 SIGTERM received. Shutting down...');
 
