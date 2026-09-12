@@ -16,7 +16,8 @@ app.set("trust proxy", 1);
 // ==========================================
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://icmr-canteen.vercel.app"
+  "https://icmr-canteen.vercel.app",
+  "https://nin-admin.vercel.app"
 ];
 
 app.use((req, res, next) => {
