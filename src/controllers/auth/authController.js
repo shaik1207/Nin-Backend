@@ -16,16 +16,18 @@ exports.userRegister = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'An account with this email already exists.' });
     }
 
+    // 1. Explicitly hash the password in the controller
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // 2. { hooks: false } explicitly blocks Sequelize from double-hashing it
     const newUser = await User.create({
       name,
       email,
-      password: hashedPassword,
+      password: hashedPassword, 
       role: 'customer',
       isActive: true
-    });
+    }, { hooks: false });
 
     const token = jwt.sign({ id: newUser.id, role: newUser.role }, JWT_SECRET, { expiresIn: '30d' });
 
@@ -74,13 +76,17 @@ exports.googleLogin = async (req, res, next) => {
     let user = await User.findOne({ where: { email } });
     
     if (!user) {
+      const randomPassword = Math.random().toString(36).slice(-12);
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(randomPassword, salt);
+      
       user = await User.create({
         name,
         email,
-        password: await bcrypt.hash(Math.random().toString(36).slice(-12), 10), 
+        password: hashedPassword, 
         role: 'customer',
         isActive: true
-      });
+      }, { hooks: false });
     } else if (!user.isActive) {
       return res.status(403).json({ success: false, message: 'Account deactivated. Contact support.' });
     }
@@ -95,7 +101,7 @@ exports.googleLogin = async (req, res, next) => {
 };
 
 // ---------------------------------------------------------
-// 4. ADMIN REGISTRATION (✅ ADDED TO FIX CRASH)
+// 4. ADMIN REGISTRATION
 // ---------------------------------------------------------
 exports.adminRegister = async (req, res, next) => {
   try {
@@ -109,14 +115,13 @@ exports.adminRegister = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Forces the role to 'admin' regardless of what the frontend sends
     const newAdmin = await User.create({
       name,
       email,
-      password: hashedPassword,
+      password: hashedPassword, 
       role: 'admin',
       isActive: true
-    });
+    }, { hooks: false });
 
     return res.status(201).json({ 
       success: true, 
