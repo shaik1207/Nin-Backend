@@ -1,25 +1,31 @@
 const express = require('express');
 const router = express.Router();
+const authController = require('../../controllers/auth/authController');
 
-const {
-  registerUser,
-  loginUser,
-  googleAuth
-} = require('../../controllers/user/authController');
-
-// Test Route
+// ==========================================
+// 0. TEST ROUTE
+// ==========================================
 router.get('/test', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Auth Routes Working'
-  });
+  res.status(200).json({ success: true, message: 'Auth Routes Working' });
 });
 
-// User Auth Routes
-router.post('/user/register', registerUser);
-router.post('/user/login', loginUser);
+// ==========================================
+// 1. USER ENDPOINTS (Public App)
+// ==========================================
+router.post('/user/register', authController.userRegister);
+router.post('/user/login', authController.userLogin);
+router.post('/user/google', authController.googleLogin);
 
-// ✅ FIXED: Changed from '/google' to '/user/google' to match frontend requests exactly
-router.post('/user/google', googleAuth); 
+// ==========================================
+// 2. ADMIN ENDPOINTS (Web Dashboard)
+// ==========================================
+// ✅ FIXED: Missing endpoint mapped correctly
+router.post('/admin/register', authController.adminRegister);
+router.post('/admin/login', authController.adminLogin);
+
+// ==========================================
+// 3. COUNTER ENDPOINTS (POS Terminal)
+// ==========================================
+router.post('/counter/login', authController.counterLogin);
 
 module.exports = router;
