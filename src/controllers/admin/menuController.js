@@ -13,8 +13,13 @@ exports.createMenuItem = async (req, res, next) => {
   try {
     const { name, category, price, time, badge, day, status } = req.body;
     
-    // Generate the public URL for the uploaded image
-    const imageUrl = req.file ? `/uploads/menu/${req.file.filename}` : null;
+    // ✅ FIXED: Check for a physical file upload first, fallback to a pasted URL string second
+    let imageUrl = null;
+    if (req.file) {
+      imageUrl = `/uploads/menu/${req.file.filename}`;
+    } else if (req.body.image) {
+      imageUrl = req.body.image;
+    }
 
     if (!imageUrl) {
       return res.status(400).json({ success: false, message: "Image is required" });
@@ -26,7 +31,7 @@ exports.createMenuItem = async (req, res, next) => {
       price,
       time,
       badge: badge === 'None' ? null : badge,
-      day: day || 'Everyday', // ✅ Saves the scheduled day
+      day: day || 'Everyday',
       status,
       image: imageUrl
     });
@@ -37,7 +42,6 @@ exports.createMenuItem = async (req, res, next) => {
   }
 };
 
-// ✅ ADDED THIS MISSING FUNCTION: Required to edit/update menu items without a 500 error
 exports.updateMenuItem = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -51,12 +55,14 @@ exports.updateMenuItem = async (req, res, next) => {
     item.price = price || item.price;
     item.time = time || item.time;
     item.badge = badge === 'None' ? null : badge;
-    item.day = day || item.day; // ✅ Updates the scheduled day
+    item.day = day || item.day;
     item.status = status || item.status;
 
-    // If a new image was uploaded during edit, replace the old image path
+    // ✅ FIXED: Support updating the image via a newly uploaded file OR a new pasted URL
     if (req.file) {
       item.image = `/uploads/menu/${req.file.filename}`;
+    } else if (req.body.image) {
+      item.image = req.body.image;
     }
 
     await item.save();
